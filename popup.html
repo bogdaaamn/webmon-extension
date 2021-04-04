@@ -1,0 +1,56 @@
+<!doctype html>
+<!--
+ This page is shown when the extension button is clicked, because the
+ "browser_action" field in manifest.json contains the "default_popup" key with
+ value "popup.html".
+ -->
+<html>
+  <head>
+    <title>Getting Started Extension's Popup</title>
+    <style>
+      body {
+        font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
+        font-size: 100%;
+      }
+      #status {
+        /* avoid an excessively wide status text */
+        white-space: pre;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        max-width: 400px;
+      }
+    </style>
+    
+
+    
+
+    
+    <title>Extesión</title>
+  </head>
+  <body>
+    <h1>Log in</h1>
+    <div class="form-style-6">
+      <form id='signup'>
+      <input type="email" name="email" placeholder="Email Address" />
+      <input type="text" name="first_name" placeholder="First Name" />
+      <input type="text" name="last_name" placeholder="Last Name" />
+      <input type="password" name="password" placeholder="Password" />
+        <input type="radio" id="donor_checkbox" name="user_type" value=0
+               checked>
+        <label for="user_type">Donor</label>
+  
+        <input type="radio" id="influencer_checkbox" name="user_type" value=1>
+        <label for="dewey">Influencer</label>
+
+      </div>
+      <input type="submit" value="Send" />
+      </form>
+      <br>
+      </div>
+    <div class="container">
+
+        <button class="btn", id='connect'><img src="connect.svg" alt="Connect to your Uphold account"></button>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
