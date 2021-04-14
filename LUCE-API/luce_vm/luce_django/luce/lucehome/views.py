@@ -2,9 +2,13 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.http import is_safe_url
-from accounts.models import User
+from accounts.models import User, Donation, Cause
 from rest_framework import serializers, authentication, permissions
-from .serializers import UserSerializer, ContractSerializer
+from .serializers import UserSerializer, PublicUserSerializer, ContractSerializer, CauseSerializer, DonationSerializer, PublicCauseSerializer
+from rest_framework import generics
+from rest_framework import filters
+
+
 from django.http import JsonResponse
 import json
 from django.http import Http404
@@ -31,19 +35,8 @@ from django.shortcuts import redirect
 from utils.web3_scripts import assign_address_v3, deploy_contract_v3, publish_data_v3, add_requester_v3, update_contract_v3
 
 
-def home_page(request):
-    head_title = "LUCE"
-    # Get first five datasets
-    qs = Dataset.objects.all()[:5]
-    context = {"head_title": head_title, 
-                "dataset_list": qs}
-    template = 'home.html'
-    return render(request, template, context)
-
-
-# Class-Based Views for registration and login:
-class RegisterView(APIView):
-
+# APIview for registering donors and influencers.
+class RegisterUser(APIView):
     def post(self, request, format=None):
         serializer = UserSerializer(data = request.data)
         validation = serializer.is_valid()
@@ -51,8 +44,90 @@ class RegisterView(APIView):
             return Response(serializer.errors)
         serializer = assign_address_v3(serializer)
         contract_address = deploy_contract_v3(serializer.data["ethereum_private_key"], serializer.data["user_type"])
-        return Response({"user" : serializer.data, "contract_address": contract_address}, status=status.HTTP_201_CREATED)
+        return Response({"data": serializer.data, "contract address":contract_address}, status=status.HTTP_201_CREATED)
 
+#get a list of all users
+class ListUsers(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    
+    def get(self, request, format=None):
+        queryset =  User.objects.all()
+        serializer = PublicUserSerializer(queryset, many = True)
+        return Response(serializer.data)
+
+class UserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, format=None):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+
+class InfluencerSearch(generics.ListAPIView):
+    queryset = User.objects.filter(user_type = 0)
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicUserSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["email", "first_name", "last_name", "ethereum_public_key"]
+class DonorSearch(generics.ListAPIView):
+    queryset = User.objects.filter(user_type = 1)
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicUserSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["email", "first_name", "last_name", "ethereum_public_key"]
+class UserSearch(generics.ListAPIView):
+    queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicUserSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["email", "first_name", "last_name", "ethereum_public_key"]
+
+#APIview for registering a cause
+class RegisterCause(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, format=None):
+        serializer = CauseSerializer(data = request.data, context = {"request":request})
+        validation = serializer.is_valid()
+        if not validation:
+            return Response(serializer.errors)
+        assign_address_v3(serializer)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class CauseSearch(generics.ListAPIView):
+    queryset = Cause.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicCauseSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["title", "description", "ethereum_public_key"]
+    
+
+class createDonation(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, format=None):
+        donation_serializer = DonationSerializer(data = request.data, context = {"request":request})
+        valid = donation_serializer.is_valid()
+        if request.data.get('donor') != request.user.id:
+            return Response({"error":"the donor id doesn't correspond to the authenticated user"})
+        if not valid:
+            return Response(donation_serializer.errors)
+        donation_serializer.save()
+        return Response(donation_serializer.data, status=status.HTTP_201_CREATED )
+  
+class getDonation(APIView):
+      def get(self, request, format=None):
+        if "id" not in request.data:
+            return Response({"errors":"id field is required"})
+        donation = Donation.objects.filter(pk = request.data["id"])
+        if not donation.exists():
+            return Response({"errors":"id not found"})
+        donation_serializer = DonationSerializer(donation.first() , context = {"request":request})
+        return Response(donation_serializer.data)
+
+#this APIView is used to deploy contract
 class DeployContract(APIView):
     permission_classes = [permissions.IsAdminUser]
     def get(self, request, format=None):
@@ -65,22 +140,6 @@ class DeployContract(APIView):
         contract_address = deploy_contract_v3(user_serializer.data["ethereum_private_key"], contract_serializer.data["user_type"])
         return Response({"contract_address": contract_address, "user_type":user_type})
 
-class ListUsers(APIView):
-    authentication_classes = [authentication.TokenAuthentication]
-    permission_classes = [permissions.IsAdminUser]
-    def get(self, request, format=None):
-
-        queryset =  User.objects.all()
-        serializer = UserSerializer(queryset, many = True)
-        return Response(serializer.data)
-
-
-class UserView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    def get(self, request, format=None):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
 
 class LoginView(FormView):
     form_class = LoginForm

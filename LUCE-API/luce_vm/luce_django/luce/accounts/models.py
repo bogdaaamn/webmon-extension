@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
+from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, user_type=None, password=None, ethereum_private_key=None, ethereum_public_key=None, is_staff=False,  is_admin=False):
@@ -34,8 +35,8 @@ class UserManager(BaseUserManager):
         user.admin = is_admin
         user.ethereum_private_key = ethereum_private_key
         user.ethereum_public_key = ethereum_public_key
-        user.save(using=self._db)
         user.user_type = user.user_type
+        user.save(using=self._db)
         return user
 
     def create_staffuser(self, email, first_name, last_name, password):
@@ -155,3 +156,24 @@ class User(AbstractBaseUser):
     def is_active(self):
         "Is the user active?"
         return self.active
+
+
+
+
+
+class Cause(models.Model):
+
+    title = models.CharField(max_length=255)
+    goal = models.IntegerField(default=0)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    ethereum_private_key = models.CharField(max_length=255, blank=True, null=True)
+    ethereum_public_key = models.CharField(max_length=255, blank=True, null=True)
+    creator = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+
+
+class Donation(models.Model):
+    cause = models.ForeignKey(Cause, on_delete=models.CASCADE)
+    donor = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.IntegerField()
+    
+    

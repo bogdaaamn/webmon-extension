@@ -5,8 +5,10 @@ w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # '/vagrant/luce_django/luce'
-SOLIDITY_CONTRACT_FILE_DONOR = BASE_DIR + '/utils/data/Donor.sol'
+SOLIDITY_CONTRACT_FILE = BASE_DIR + '/utils/data/Webmon.sol'
 SOLIDITY_CONTRACT_FILE_INFLUENCER = BASE_DIR + '/utils/data/Influencer.sol'
+SOLIDITY_CONTRACT_FILE_DONOR = BASE_DIR + '/utils/data/Donor.sol'
+
 
 
 #### WEB3 HELPER FUNCTIONS ####g
@@ -103,15 +105,13 @@ def deploy_contract_v3(private_key, user_type):
     from solcx import compile_source
     from web3 import Web3
     
-    contract_interface_key = ""
-    contract_address = ""
-    if user_type==1:
-        contract_address = SOLIDITY_CONTRACT_FILE_DONOR
-        contract_interface_key = '<stdin>:Donor'
-
-    else:
-        contract_address = SOLIDITY_CONTRACT_FILE_INFLUENCER
+    if(user_type == 0) :
         contract_interface_key = '<stdin>:Influencer'
+        contract_address = SOLIDITY_CONTRACT_FILE_INFLUENCER
+    else :
+        contract_interface_key = '<stdin>:Donor'
+        contract_address = SOLIDITY_CONTRACT_FILE_DONOR
+ 
 
     # Read in LUCE contract code
     with open(contract_address, 'r') as file: # Adjust file_path for use in Jupyter/Django

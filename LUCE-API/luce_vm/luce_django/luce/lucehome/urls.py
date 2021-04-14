@@ -9,10 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import LogoutView
 
 
-from .views import RegisterView
-from .views import ListUsers
-from .views import UserView
-from .views import DeployContract
+from .views import RegisterUser, ListUsers, UserView,DeployContract, RegisterCause, createDonation, UserSearch,getDonation, InfluencerSearch, DonorSearch, CauseSearch
 
 # Import settings to access environment variables 
 from django.conf import settings
@@ -23,10 +20,10 @@ from search.views import search_view
 from API.views import login
 
 from lucehome.views import (
-    home_page,
+    
     dev_view,
     # register_view,
-    RegisterView,
+
     LoginView,
     LoginView_PostReg,
     )
@@ -49,10 +46,16 @@ from datastore.views import (
 
 
 urlpatterns = [
-    path('', RegisterView.as_view()),
+    path('user/register/', RegisterUser.as_view()),
+    path('user/influencer/', InfluencerSearch.as_view()),
+    path('user/donor/', DonorSearch.as_view()),
+    path('user/all/', UserSearch.as_view()),
     path('api-token-auth/', views.obtain_auth_token),
-    path('users/', ListUsers.as_view()),
+    path('donations/create/', createDonation.as_view()), 
+    path('donations/get/', getDonation.as_view()),
     path('user/', UserView.as_view()),
+    path('cause/register/', RegisterCause.as_view()),
+    path('cause/', CauseSearch.as_view()),
     path('deploy/', DeployContract.as_view()),
     path('luce_admin/', admin.site.urls),
     path('login-uphold/', login),
@@ -64,7 +67,6 @@ urlpatterns = [
     path('search/', search_view),
 
     # path('register/', register_view),
-    path('register/', RegisterView.as_view()),
     path('login/', LoginView.as_view()),
     path('logout/', LogoutView.as_view()),
 
