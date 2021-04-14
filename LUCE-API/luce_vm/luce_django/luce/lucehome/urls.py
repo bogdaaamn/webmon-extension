@@ -9,7 +9,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import LogoutView
 
 
-from .views import RegisterUser, ListUsers, UserView,DeployContract, RegisterCause, createDonation, UserSearch,getDonation, InfluencerSearch, DonorSearch, CauseSearch
+from .views import (
+    RegisterUser, ListUsers,
+     UserView,DeployContract,
+    RegisterCause, createDonation,
+    UserSearch,getDonation,
+    InfluencerSearch, DonorSearch,
+    CauseSearch, DonationSearchByCause,
+    DonationSearchByDonor, DonationSearchByCauseID,
+    DonationSearchByDonorID
+    )
 
 # Import settings to access environment variables 
 from django.conf import settings
@@ -51,8 +60,12 @@ urlpatterns = [
     path('user/donor/', DonorSearch.as_view()),
     path('user/all/', UserSearch.as_view()),
     path('api-token-auth/', views.obtain_auth_token),
-    path('donations/create/', createDonation.as_view()), 
-    path('donations/get/', getDonation.as_view()),
+    path('donation/create/', createDonation.as_view()), 
+    path('donation/get/', getDonation.as_view()),
+    path('donation/cause/', DonationSearchByCause.as_view()),
+    path('donation/cause/id/', DonationSearchByCauseID.as_view()),
+    path('donation/donor/',DonationSearchByDonor.as_view()),
+    path('donation/donor/id/', DonationSearchByDonorID.as_view()),
     path('user/', UserView.as_view()),
     path('cause/register/', RegisterCause.as_view()),
     path('cause/', CauseSearch.as_view()),

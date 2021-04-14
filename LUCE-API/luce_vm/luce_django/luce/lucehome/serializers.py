@@ -25,11 +25,11 @@ class ContractSerializer(serializers.Serializer):
         return data
 
 class CauseSerializer(serializers.ModelSerializer):
-    creator_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    creator = PublicUserSerializer(read_only=True)
 
     class Meta: 
         model = Cause
-        fields = ["id", "title", "description", "ethereum_public_key", "ethereum_private_key", "goal", "creator_id"]
+        fields = ["id", "title", "description", "ethereum_public_key", "ethereum_private_key", "goal", "creator"]
 
     def create(self, validated_data):
         user = self.context["request"].user
@@ -37,7 +37,7 @@ class CauseSerializer(serializers.ModelSerializer):
         return cause
     def validate(self,data):
         user = self.context["request"].user
-        user_serializer = UserSerializer(user)
+        user_serializer = PublicUserSerializer(user)
         usertype = user_serializer["user_type"].value
 
         #only influencers can create causes
@@ -46,12 +46,14 @@ class CauseSerializer(serializers.ModelSerializer):
         return data
 
 class PublicCauseSerializer(serializers.ModelSerializer):
-    creator_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    creator = PublicUserSerializer(read_only=True)
     class Meta:
         model = Cause
-        fields =  ["id", "title", "description", "ethereum_public_key", "goal", "creator_id"]
+        fields =  ["id", "title", "description", "ethereum_public_key", "goal", "creator"]
 
 class DonationSerializer(serializers.ModelSerializer):
+    cause = PublicCauseSerializer(read_only = True)
+    donor = PublicUserSerializer(read_only = True)
     class Meta:
         model = Donation
         fields = [ "cause", "amount", "donor"]

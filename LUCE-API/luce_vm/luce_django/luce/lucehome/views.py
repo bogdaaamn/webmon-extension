@@ -62,7 +62,6 @@ class UserView(APIView):
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
-
 class InfluencerSearch(generics.ListAPIView):
     queryset = User.objects.filter(user_type = 0)
     permission_classes = [permissions.AllowAny]
@@ -126,6 +125,34 @@ class getDonation(APIView):
             return Response({"errors":"id not found"})
         donation_serializer = DonationSerializer(donation.first() , context = {"request":request})
         return Response(donation_serializer.data)
+
+class DonationSearchByCause(generics.ListAPIView):
+    queryset = Donation.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DonationSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["cause__title", "cause__description"]
+
+class DonationSearchByCauseID(generics.ListAPIView):
+    queryset = Donation.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DonationSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["=cause__id"]
+
+class DonationSearchByDonor(generics.ListAPIView):
+    queryset = Donation.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DonationSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["donor__email", "donor__first_name", "donor__last_name"]
+cd.
+class DonationSearchByDonorID(generics.ListAPIView):
+    queryset = Donation.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = DonationSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["=donor__id"]
 
 #this APIView is used to deploy contract
 class DeployContract(APIView):
