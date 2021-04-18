@@ -146,7 +146,6 @@ class DonationSearchByDonor(generics.ListAPIView):
     serializer_class = DonationSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["donor__email", "donor__first_name", "donor__last_name"]
-cd.
 class DonationSearchByDonorID(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
