@@ -6,12 +6,12 @@ from django.contrib.auth.hashers import make_password
 class PublicUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "ethereum_public_key", "first_name", "last_name", "user_type"]
+        fields = ["id","contract_address", "email", "ethereum_public_key", "first_name", "last_name", "user_type"]
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "ethereum_public_key", "ethereum_private_key", "password", "first_name", "last_name", "user_type"]
+        fields = ["id","contract_address", "email", "ethereum_public_key", "ethereum_private_key", "password", "first_name", "last_name", "user_type"]
     def create(self, validated_data):
         validated_data["password"] = make_password(validated_data.get("password"))
         user = super(UserSerializer, self).create(validated_data)
@@ -52,17 +52,17 @@ class PublicCauseSerializer(serializers.ModelSerializer):
         fields =  ["id", "title", "description", "ethereum_public_key", "goal", "creator"]
 
 class DonationSerializer(serializers.ModelSerializer):
-    cause = PublicCauseSerializer(read_only = True)
-    donor = PublicUserSerializer(read_only = True)
+    cause = serializers.PrimaryKeyRelatedField(many = False, queryset = Cause.objects.all())
+    donor = serializers.PrimaryKeyRelatedField(many = False, queryset = User.objects.all())
+    
     class Meta:
         model = Donation
         fields = [ "cause", "amount", "donor"]
 
-    def create(self, validated_data):
-        user = self.context["request"].user
-        validated_data["donor"] = user
-        donation = Donation.objects.create(**validated_data)
-        return donation
-    
+class PublicDonationSerializer(serializers.ModelSerializer):
+    cause = PublicCauseSerializer(read_only = True)
+    donor = PublicUserSerializer(read_only = True)
 
- 
+    class Meta:
+        model = Donation
+        fields = ["id","cause", "amount", "donor"]

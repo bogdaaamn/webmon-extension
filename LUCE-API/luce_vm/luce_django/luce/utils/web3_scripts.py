@@ -28,6 +28,22 @@ def create_wallet():
     eth_account = w3.eth.account.create()
     return (eth_account)
 
+def getContract(user):
+    private_key = user.ethereum_private_key
+    d = compile_and_extract_interface_influencer()
+
+    account = w3.eth.account.privateKeyToAccount(private_key)
+    nonce = w3.eth.getTransactionCount(account.address)
+    nonce = w3.eth.getTransactionCount(account.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    address = user.contract_address
+    influencerContract = w3.eth.contract(address=address, abi = d["abi"] )
+    return influencerContract
 def send_ether(amount_in_ether, recipient_address, sender_pkey=faucet.privateKey):
     amount_in_wei = w3.toWei(amount_in_ether,'ether');
     
@@ -93,24 +109,169 @@ def assign_address_v3(user):
     # Store public key and private key in user model
     current_user.validated_data["ethereum_public_key"] = eth_account.address
     current_user.validated_data["ethereum_private_key"] = eth_account.privateKey.hex() # this field is not implemented atm
-    current_user.save()
     # Fund wallet
     fund_wallet(recipient = eth_account.address, amount = 100)
     print("Balance:", w3.eth.getBalance(current_user.validated_data["ethereum_public_key"])) # print balance to ensure funding took place
     # Return user, now with wallet associated
     return current_user
 
-    #user type 0 is a influencer, 1 is an donor
-def deploy_contract_v3(private_key, user_type):
+def check_balance(user):
+    from web3 import Web3
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    if user.user_type == 0:
+        d = compile_and_extract_interface_donor()
+    else:
+        d = compile_and_extract_interface_donor()
+    address = user.contract_address
+    private_key = user.ethereum_private_key
+    abi = d["abi"]
+    contract_instance = w3.eth.contract(address=address, abi=abi)
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    contract_txn = contract_instance.functions.balance().call()
+
+    return contract_txn
+
+def check_cause(user, cause):
+    from web3 import Web3
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    d = compile_and_extract_interface_influencer()
+    address = cause.creator.contract_address
+    private_key = user.ethereum_private_key
+    abi = d["abi"]
+    contract_instance = w3.eth.contract(address=address, abi=abi)
+
+
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+
+    contract_txn = contract_instance.functions.causes(cause.id).call()
+
+    
+    return contract_txn
+
+def add_balance(user, amount):
+    from web3 import Web3
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    if user.user_type == 0:
+        d = compile_and_extract_interface_influencer()
+    else :
+        d = compile_and_extract_interface_donor()
+    abi = d["abi"]
+
+    address = user.contract_address
+    private_key = user.ethereum_private_key
+    contract_instance = w3.eth.contract(address=address, abi=abi)
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    contract_txn = contract_instance.functions.add_balance(amount).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    return tx_receipt
+
+def register_cause(cause):
+    from web3 import Web3
+
+    cause_id = cause.id
+    goal = cause.goal
+
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    d = compile_and_extract_interface_influencer()
+    address = cause.creator.contract_address
+    private_key = cause.creator.ethereum_private_key
+    abi = d["abi"]
+    contract_instance = w3.eth.contract(address=address, abi=abi)
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    cause_address = cause.ethereum_public_key
+    contract_txn = contract_instance.functions.addCause(cause_id, goal, cause_address).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    logs = contract_instance.events.CauseAdded().processReceipt(tx_receipt)
+
+    return logs
+
+def donate(validated_donation_serializer, _user):
+    from web3 import Web3
+    from solcx import compile_source
+
+    
+    # Compile Luce contract and obtain interface
+    d = compile_and_extract_interface_influencer()
+    
+    # Establish web3 connection
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    
+    # Obtain user so we know his address for the 'from' field
+    private_key = _user.ethereum_private_key
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    donor_contract_address = _user.contract_address
+    _amount = validated_donation_serializer.validated_data["amount"]
+    _cause_id = validated_donation_serializer.validated_data["cause"].id
+    address = validated_donation_serializer.validated_data["cause"].creator.contract_address
+    influencer = w3.eth.contract(address=address, abi = d["abi"] )
+    influencer_txn = influencer.functions.donate(_amount, _cause_id, donor_contract_address).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(influencer_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    logs = influencer.events.Donate().processReceipt(tx_receipt)
+    print(logs)
+    return logs
+def searchDonations(user, influencer):
+    donor_address = user.ethereum_public_key
+    influencerContract = getContract(influencer)
+    event_filter = influencerContract.events.Donate.createFilter(fromBlock='latest')
+    print(event_filter.get_all_entries())
+    return event_filter
+
+def deploy_contract_v3(_user):
     from solcx import compile_source
     from web3 import Web3
-    
+ 
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+
+    user_type = _user.validated_data["user_type"]
+    private_key = _user.validated_data["ethereum_private_key"]
+    contract_address = SOLIDITY_CONTRACT_FILE
     if(user_type == 0) :
         contract_interface_key = '<stdin>:Influencer'
-        contract_address = SOLIDITY_CONTRACT_FILE_INFLUENCER
     else :
         contract_interface_key = '<stdin>:Donor'
-        contract_address = SOLIDITY_CONTRACT_FILE_DONOR
  
 
     # Read in LUCE contract code
@@ -127,41 +288,56 @@ def deploy_contract_v3(private_key, user_type):
     abi = contract_interface['abi']
     bytecode = contract_interface['bin']
     
-    # Establish web3 connection
-    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
-    
-    #Obtain user so we know his address for the 'from' field
-    user = w3.eth.account.privateKeyToAccount(private_key)
-    
-    # Construct raw transaction
-    nonce = w3.eth.getTransactionCount(user.address)
-    
+    # Obtain contract address & instantiate contract
+
+    user_address = _user.validated_data["ethereum_public_key"]
+    private_key = _user.validated_data["ethereum_private_key"]
+
+    account = w3.eth.account.privateKeyToAccount(_user.validated_data["ethereum_private_key"])
+    nonce = w3.eth.getTransactionCount(user_address)
+
     transaction = {
-    'from': user.address,
+    'from': user_address,
     'gas': 2000000,
     'data': bytecode,
     'chainId': 3,
     'gasPrice': w3.toWei('40', 'gwei'),
     'nonce': nonce,
     }
-    
-    # Sign transaction
+
     signed_txn = w3.eth.account.signTransaction(transaction, private_key)
-    
-    # Deploy
+    #luce_txn = luce.functions.donate(validated_donation_serializer.validated_data["amount"], validated_donation_serializer.validated_data["cause"].id).buildTransaction(txn_dict)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
     
-    # Wait for the transaction to be mined, and get the transaction receipt
+    # Sign transaction
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    
+        
     # Obtain address of freshly deployed contract
     contractAddress = tx_receipt.contractAddress
+    _user.validated_data["contract_address"] = contractAddress
     
-    return contractAddress
+
+    d = compile_and_extract_interface_donor()
+    nonce = w3.eth.getTransactionCount(contractAddress)
+
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+
+    donor = w3.eth.contract(address=contractAddress, abi = d["abi"], bytecode=bytecode )
+    donor_txn = donor.constructor(_user.data["id"]).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(donor_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    
+    return tx_receipt
 
 
 # Auxilary function to support interaction with existing smart contract
-def compile_and_extract_interface():
+def compile_and_extract_interface_donor():
     from solcx import compile_source
     
     # Read in LUCE contract code
@@ -172,7 +348,7 @@ def compile_and_extract_interface():
     compiled_sol = compile_source(contract_source_code)
 
     # Extract full interface as dict from compiled contract
-    contract_interface = compiled_sol['<stdin>:Dataset']
+    contract_interface = compiled_sol['<stdin>:Donor']
 
     # Extract abi and bytecode
     abi = contract_interface['abi']
@@ -184,6 +360,54 @@ def compile_and_extract_interface():
     d['bytecode'] = bytecode
     d['full_interface'] = contract_interface
     return(d)
+
+def compile_and_extract_interface_influencer():
+    from solcx import compile_source
+    
+    # Read in LUCE contract code
+    with open(SOLIDITY_CONTRACT_FILE, 'r') as file: # Adjust file_path for use in Jupyter/Django
+        contract_source_code = file.read()
+        
+    # Compile & Store Compiled source code
+    compiled_sol = compile_source(contract_source_code)
+
+    # Extract full interface as dict from compiled contract
+    contract_interface = compiled_sol['<stdin>:Influencer']
+
+    # Extract abi and bytecode
+    abi = contract_interface['abi']
+    bytecode = contract_interface['bin']
+    
+    # Create dictionary with interface
+    d = dict()
+    d['abi']      = abi
+    d['bytecode'] = bytecode
+    d['full_interface'] = contract_interface
+    return(d)
+
+    def compile_and_extract_interface():
+        from solcx import compile_source
+        
+        # Read in LUCE contract code
+        with open(SOLIDITY_CONTRACT_FILE, 'r') as file: # Adjust file_path for use in Jupyter/Django
+            contract_source_code = file.read()
+            
+        # Compile & Store Compiled source code
+        compiled_sol = compile_source(contract_source_code)
+
+        # Extract full interface as dict from compiled contract
+        contract_interface = compiled_sol['<stdin>:Influencer']
+
+        # Extract abi and bytecode
+        abi = contract_interface['abi']
+        bytecode = contract_interface['bin']
+        
+        # Create dictionary with interface
+        d = dict()
+        d['abi']      = abi
+        d['bytecode'] = bytecode
+        d['full_interface'] = contract_interface
+        return(d)
 
 
 def publish_data_v3(provider_private_key, contract_address, description="Description", license=3, link="void"):

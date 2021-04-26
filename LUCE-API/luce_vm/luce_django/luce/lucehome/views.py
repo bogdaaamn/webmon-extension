@@ -4,7 +4,6 @@ from django.template.loader import get_template
 from django.utils.http import is_safe_url
 from accounts.models import User, Donation, Cause
 from rest_framework import serializers, authentication, permissions
-from .serializers import UserSerializer, PublicUserSerializer, ContractSerializer, CauseSerializer, DonationSerializer, PublicCauseSerializer
 from rest_framework import generics
 from rest_framework import filters
 
@@ -32,7 +31,29 @@ from django.views.generic import CreateView, FormView
 # For redirect after form submission
 from django.shortcuts import redirect
 # Import newest versions of web3 scripts
-from utils.web3_scripts import assign_address_v3, deploy_contract_v3, publish_data_v3, add_requester_v3, update_contract_v3
+from utils.web3_scripts import (
+assign_address_v3,
+deploy_contract_v3, 
+publish_data_v3, 
+add_requester_v3, 
+update_contract_v3,
+donate,
+register_cause,
+add_balance,
+check_balance,
+check_cause,
+searchDonations
+)
+
+from .serializers import (
+    UserSerializer, 
+    PublicUserSerializer, 
+    ContractSerializer, 
+    CauseSerializer,
+    DonationSerializer,
+    PublicCauseSerializer, 
+    PublicDonationSerializer)
+
 
 
 # APIview for registering donors and influencers.
@@ -43,8 +64,29 @@ class RegisterUser(APIView):
         if not validation: 
             return Response(serializer.errors)
         serializer = assign_address_v3(serializer)
-        contract_address = deploy_contract_v3(serializer.data["ethereum_private_key"], serializer.data["user_type"])
-        return Response({"data": serializer.data, "contract address":contract_address}, status=status.HTTP_201_CREATED)
+        user_instance = serializer.save()
+        tx_receipt = deploy_contract_v3(serializer)
+        contract_address = tx_receipt.contractAddress
+        user_instance.contract_address = contract_address
+        user_instance.save()
+
+        serializer = UserSerializer(user_instance)
+        return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
+
+class FundUser(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, format=None):
+        errors = {}
+        if "amount" not in request.data:
+            errors["amount"] = ["This field is required"]
+        if errors:
+            return Response(errors)
+        
+        user = request.user
+        amount = request.data.get("amount")
+        a = add_balance(user, amount)
+        balance = check_balance(user)
+        return Response({"message":"blance updatad successfully", "balance":balance})
 
 #get a list of all users
 class ListUsers(APIView):
@@ -84,38 +126,89 @@ class UserSearch(generics.ListAPIView):
 #APIview for registering a cause
 class RegisterCause(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request, format=None):
         serializer = CauseSerializer(data = request.data, context = {"request":request})
         validation = serializer.is_valid()
         if not validation:
             return Response(serializer.errors)
         assign_address_v3(serializer)
-        serializer.save()
+        cause = serializer.save()
+        print(register_cause(cause))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class CheckCause(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, format=None):
+        user = request.user
+        errors = {}
+        if "cause_id" not in request.data:
+            errors["cause_id"] = ["This field is required"]
+        if errors:
+            return Response(errors)
+        cause_id = request.data["cause_id"]
+        causeObject = Cause.objects.filter(pk = cause_id)
+        
+        if not causeObject.exists():
+            errors["cause_not_found"] = "no cause found with this id" 
+        if errors:
+            return Response(errors)
+        
+        cause = check_cause(user, causeObject.first())
+
+        if cause[0] == False:
+            errors["cause_not_found"] = "no cause found with this id in the blockchain"
+        if errors:
+            return Response(errors)
+
+        response = {"cause_goal":cause[1], "cause_balance": cause[2], "cause_address": cause[3]}
+        return Response(response)
+        
+        
+        
 
 class CauseSearch(generics.ListAPIView):
     queryset = Cause.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicCauseSerializer
-    filter_backends = [filters.SearchFilter]
     search_fields = ["title", "description", "ethereum_public_key"]
     
+class CauseSearchByInfluencerID(generics.ListAPIView):
+    queryset = Cause.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicCauseSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["=creator__id"]
+    
+class CauseSearchByInfluencer(generics.ListAPIView):
+    queryset = Cause.objects.all()
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicCauseSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["creator__first_name", "creator__last_name", "creator__email"]
+    
+
 
 class createDonation(APIView):
     authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request, format=None):
+        if Cause.objects.filter(pk = request.data.get('cause')).count()!=1:
+            return Response({"error":"cause id not found"})
+        user = request.user
+        cause = Cause.objects.get(pk = request.data["cause"])
         donation_serializer = DonationSerializer(data = request.data, context = {"request":request})
         valid = donation_serializer.is_valid()
         if request.data.get('donor') != request.user.id:
             return Response({"error":"the donor id doesn't correspond to the authenticated user"})
         if not valid:
             return Response(donation_serializer.errors)
+        logs = donate(validated_donation_serializer = donation_serializer, _user = request.user)
         donation_serializer.save()
-        return Response(donation_serializer.data, status=status.HTTP_201_CREATED )
+        return Response({"donation":donation_serializer.data},status=status.HTTP_201_CREATED) 
   
+
+
 class getDonation(APIView):
       def get(self, request, format=None):
         if "id" not in request.data:
@@ -123,33 +216,40 @@ class getDonation(APIView):
         donation = Donation.objects.filter(pk = request.data["id"])
         if not donation.exists():
             return Response({"errors":"id not found"})
-        donation_serializer = DonationSerializer(donation.first() , context = {"request":request})
+        donation_serializer = PublicDonationSerializer(donation.first() , context = {"request":request})
+        creator_id = donation_serializer.data["cause"]["creator"]["id"]
+        donor_id = donation_serializer.data["donor"]["id"]
+
+        creator = User.objects.get(pk = creator_id)
+        donor = User.objects.get(pk = donor_id)
+
+        searchDonations(donor, creator)
         return Response(donation_serializer.data)
 
 class DonationSearchByCause(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
-    serializer_class = DonationSerializer
+    serializer_class = PublicDonationSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["cause__title", "cause__description"]
 
 class DonationSearchByCauseID(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
-    serializer_class = DonationSerializer
+    serializer_class = PublicDonationSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["=cause__id"]
 
 class DonationSearchByDonor(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
-    serializer_class = DonationSerializer
+    serializer_class = PublicDonationSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["donor__email", "donor__first_name", "donor__last_name"]
 class DonationSearchByDonorID(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
-    serializer_class = DonationSerializer
+    serializer_class = PublicDonationSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["=donor__id"]
 

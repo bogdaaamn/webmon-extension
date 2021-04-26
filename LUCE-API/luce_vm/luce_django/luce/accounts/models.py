@@ -11,7 +11,7 @@ from django.contrib.auth.models import (
 from django.conf import settings
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name, user_type=None, password=None, ethereum_private_key=None, ethereum_public_key=None, is_staff=False,  is_admin=False):
+    def create_user(self, email, first_name, last_name, user_type=None, password=None, ethereum_private_key=None, ethereum_public_key=None, contract_address=None, is_staff=False,  is_admin=False):
         """
         Creates and saves a User with the given arguments and password.
         """
@@ -37,6 +37,7 @@ class UserManager(BaseUserManager):
         user.ethereum_public_key = ethereum_public_key
         user.user_type = user.user_type
         user.save(using=self._db)
+        user.contract_address = contract_address
         return user
 
     def create_staffuser(self, email, first_name, last_name, password):
@@ -69,6 +70,7 @@ class UserManager(BaseUserManager):
         )
         user.staff = True
         user.admin = True
+        user.user_type = 3
         user.save(using=self._db)
         return user
 
@@ -92,8 +94,8 @@ class User(AbstractBaseUser):
 
     ethereum_private_key = models.CharField(max_length=255, blank=True, null=True)
     ethereum_public_key = models.CharField(max_length=255, blank=True, null=True)
+    contract_address = models.CharField(max_length=255, blank=True)
 
-    
     # Make these fields compulsory?
     first_name 	= 	models.CharField(max_length=255, blank=True, null=True)
     last_name 	= 	models.CharField(max_length=255, blank=True, null=True)

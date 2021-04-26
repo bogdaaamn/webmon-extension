@@ -11,13 +11,16 @@ from django.contrib.auth.views import LogoutView
 
 from .views import (
     RegisterUser, ListUsers,
-     UserView,DeployContract,
+    UserView,DeployContract,
+    FundUser,
     RegisterCause, createDonation,
     UserSearch,getDonation,
     InfluencerSearch, DonorSearch,
-    CauseSearch, DonationSearchByCause,
+    CauseSearch, CauseSearchByInfluencer, CauseSearchByInfluencerID,
+    DonationSearchByCause,
     DonationSearchByDonor, DonationSearchByCauseID,
-    DonationSearchByDonorID
+    DonationSearchByDonorID, 
+    CheckCause
     )
 
 # Import settings to access environment variables 
@@ -55,20 +58,24 @@ from datastore.views import (
 
 
 urlpatterns = [
-    path('user/register/', RegisterUser.as_view()),
-    path('user/influencer/', InfluencerSearch.as_view()),
-    path('user/donor/', DonorSearch.as_view()),
-    path('user/all/', UserSearch.as_view()),
-    path('api-token-auth/', views.obtain_auth_token),
-    path('donation/create/', createDonation.as_view()), 
-    path('donation/get/', getDonation.as_view()),
-    path('donation/cause/', DonationSearchByCause.as_view()),
-    path('donation/cause/id/', DonationSearchByCauseID.as_view()),
-    path('donation/donor/',DonationSearchByDonor.as_view()),
-    path('donation/donor/id/', DonationSearchByDonorID.as_view()),
+    path('user/register/', RegisterUser.as_view(), name="user-register"),
+    path('user/influencer/', InfluencerSearch.as_view(), name="influencer-serch"),
+    path('user/fund/', FundUser.as_view(), name="fund"),
+    path('user/donor/', DonorSearch.as_view(), name="donor-search"),
+    path('user/all/', UserSearch.as_view(), name = "user-search-all"),
+    path('api-token-auth/', views.obtain_auth_token, name = "api-token-auth") ,
+    path('donation/create/', createDonation.as_view(), name = "donation-create"), 
+    path('donation/get/', getDonation.as_view(), name="donation-get"),
+    path('donation/cause/', DonationSearchByCause.as_view(), name = "donation-search-by-cause"),
+    path('donation/cause/id/', DonationSearchByCauseID.as_view(), name="donatoin-search-by-cause-id"),
+    path('donation/donor/',DonationSearchByDonor.as_view(), name="donatoin-search-by-donor"),
+    path('donation/donor/id/', DonationSearchByDonorID.as_view(),name="donatoin-search-by-donor-id"),
     path('user/', UserView.as_view()),
-    path('cause/register/', RegisterCause.as_view()),
-    path('cause/', CauseSearch.as_view()),
+    path('cause/register/', RegisterCause.as_view(), name="cause-register"),
+    path('cause/', CauseSearch.as_view(), name="cause-search"),
+    path('cause/influencer/', CauseSearchByInfluencer.as_view(), name="cause-search-influencer"),
+    path('cause/influencer/id/', CauseSearchByInfluencerID.as_view(), name="cause-search-influencer-id"),
+    path('cause/check/', CheckCause.as_view(), name="check"),
     path('deploy/', DeployContract.as_view()),
     path('luce_admin/', admin.site.urls),
     path('login-uphold/', login),

@@ -35,3 +35,6 @@ ubuntu-xenial-16.04-cloudimg-console.log
  django_vm/**
  luce_vm/**
 /luce_wild/**
+
+# Exclude db
+luce_vm/luce_django/luce/db.sqlite3
