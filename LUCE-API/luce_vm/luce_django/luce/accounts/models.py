@@ -94,7 +94,7 @@ class User(AbstractBaseUser):
 
     ethereum_private_key = models.CharField(max_length=255, blank=True, null=True)
     ethereum_public_key = models.CharField(max_length=255, blank=True, null=True)
-    contract_address = models.CharField(max_length=255, blank=True)
+    contract_address = models.CharField(max_length=255, blank=True, null = True)
 
     # Make these fields compulsory?
     first_name 	= 	models.CharField(max_length=255, blank=True, null=True)
