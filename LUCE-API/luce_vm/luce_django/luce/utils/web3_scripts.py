@@ -218,6 +218,7 @@ def register_cause(cause):
 
     return logs
 
+##TODO: add check so that influencer cannot donate to cause
 def donate(validated_donation_serializer, _user):
     from web3 import Web3
     from solcx import compile_source
