@@ -36,11 +36,12 @@ Vagrant.configure("2") do |config|
     lucevm.vm.provider "virtualbox" do |vb|
 
       # Amount of memory used by VM (1GB)
-      vb.memory = "1024"    
+      vb.memory = "1024"
       #vb.memory = "2048"
+      vb.cpus = 1    
 
       # Display VirtualBox GUI when booting the machine
-      vb.gui = true
+      #vb.gui = true
 
       # Disable creation of log file
       vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
