@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
+from django.core.validators import MaxValueValidator, MinValueValidator
+
 from django.contrib.auth.models import (
     BaseUserManager, AbstractBaseUser
 )
@@ -170,6 +172,8 @@ class Cause(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     ethereum_private_key = models.CharField(max_length=255, blank=True, null=True)
     ethereum_public_key = models.CharField(max_length=255, blank=True, null=True)
+    percentBPS = models.IntegerField(validators=[MaxValueValidator(10000), MinValueValidator(0)], default=10000)
+
     creator = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
 
 
@@ -177,5 +181,20 @@ class Donation(models.Model):
     cause = models.ForeignKey(Cause, on_delete=models.CASCADE)
     donor = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.IntegerField()
+
+
+
+class CauseGroup(models.Model):
+    name = models.CharField(max_length=255, default = '')
+    description = models.CharField(max_length=255, default = '')
+    creator = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+
+
+
+    
+class GroupInfo(models.Model):
+    cause = models.ForeignKey(Cause, on_delete=models.CASCADE)
+    group = models.ForeignKey(CauseGroup, related_name='group', on_delete=models.CASCADE, null = True)
+    split = models.IntegerField(validators=[MaxValueValidator(10000), MinValueValidator(0)])
     
     

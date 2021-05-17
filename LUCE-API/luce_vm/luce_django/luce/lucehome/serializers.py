@@ -1,4 +1,4 @@
-from accounts.models import User, Cause, Donation
+from accounts.models import User, Cause, Donation, CauseGroup, GroupInfo
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 
@@ -29,7 +29,7 @@ class CauseSerializer(serializers.ModelSerializer):
 
     class Meta: 
         model = Cause
-        fields = ["id", "title", "description", "ethereum_public_key", "ethereum_private_key", "goal", "creator"]
+        fields = ["id", "title", "description", "ethereum_public_key", "ethereum_private_key", "goal", "percentBPS","creator"]
 
     def create(self, validated_data):
         user = self.context["request"].user
@@ -49,7 +49,7 @@ class PublicCauseSerializer(serializers.ModelSerializer):
     creator = PublicUserSerializer(read_only=True)
     class Meta:
         model = Cause
-        fields =  ["id", "title", "description", "ethereum_public_key", "goal", "creator"]
+        fields =  ["id", "title", "description", "ethereum_public_key", "goal", "percentBPS","creator"]
 
 class DonationSerializer(serializers.ModelSerializer):
     cause = serializers.PrimaryKeyRelatedField(many = False, queryset = Cause.objects.all())
@@ -66,3 +66,17 @@ class PublicDonationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Donation
         fields = ["id","cause", "amount", "donor"]
+
+class PublicGroupInfoSerializer(serializers.ModelSerializer):
+    cause = serializers.PrimaryKeyRelatedField(many = False,queryset = Cause.objects.all())
+    class Meta:
+        model = GroupInfo
+        fields = ["cause", "split", "group"]
+
+class PublicGroupSerializer(serializers.ModelSerializer):
+    info = PublicGroupInfoSerializer(many=True, read_only=True)
+    class Meta:
+        model = CauseGroup
+        fields = ["id",'name', 'description', 'info', "creator"]
+
+   

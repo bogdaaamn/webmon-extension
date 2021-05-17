@@ -1,6 +1,7 @@
 from web3 import Web3
 import time
 w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+from web3 import exceptions
 
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,10 +31,13 @@ def create_wallet():
 
 def getContract(user):
     private_key = user.ethereum_private_key
-    d = compile_and_extract_interface_influencer()
+    if user.user_type == 0:
+        d = compile_and_extract_interface_influencer()
+    else:
+        d = compile_and_extract_interface_donor()
+
 
     account = w3.eth.account.privateKeyToAccount(private_key)
-    nonce = w3.eth.getTransactionCount(account.address)
     nonce = w3.eth.getTransactionCount(account.address)
     txn_dict = {
     'gas': 2000000,
@@ -42,8 +46,9 @@ def getContract(user):
     'nonce': nonce,
     }
     address = user.contract_address
-    influencerContract = w3.eth.contract(address=address, abi = d["abi"] )
-    return influencerContract
+    Contract = w3.eth.contract(address=address, abi = d["abi"] )
+    return Contract
+
 def send_ether(amount_in_ether, recipient_address, sender_pkey=faucet.privateKey):
     amount_in_wei = w3.toWei(amount_in_ether,'ether');
     
@@ -88,8 +93,6 @@ def send_ether(amount_in_ether, recipient_address, sender_pkey=faucet.privateKey
 def fund_wallet(recipient, amount = 100):
     send_ether(amount,recipient)
 
-
-
 #### ASSIGN ADDRESS ####
 # This script takes a Django user object as input and
 # creates a fresh ethereum account for the user.
@@ -118,25 +121,27 @@ def assign_address_v3(user):
 def check_balance(user):
     from web3 import Web3
     w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
-    if user.user_type == 0:
-        d = compile_and_extract_interface_donor()
-    else:
-        d = compile_and_extract_interface_donor()
-    address = user.contract_address
-    private_key = user.ethereum_private_key
-    abi = d["abi"]
-    contract_instance = w3.eth.contract(address=address, abi=abi)
-    user = w3.eth.account.privateKeyToAccount(private_key)
-    nonce = w3.eth.getTransactionCount(user.address)
-    txn_dict = {
-    'gas': 2000000,
-    'chainId': 3,
-    'gasPrice': w3.toWei('40', 'gwei'),
-    'nonce': nonce,
+   
+    balance_contract = w3.eth.getBalance(user.contract_address)
+    balance_user = w3.eth.getBalance(user.ethereum_public_key)
+    final = {
+        "contract balance": balance_contract,
+        "address balance": balance_user
     }
-    contract_txn = contract_instance.functions.balance().call()
-
-    return contract_txn
+    return final
+def check_balance_influencer(influencer):
+    from web3 import Web3
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    contract = getContract(influencer)
+    balance_influ_contract = contract.functions.balance().call()
+    balance_contract = w3.eth.getBalance(influencer.contract_address)
+    balance_user = w3.eth.getBalance(influencer.ethereum_public_key)
+    final = {
+        "contract balance": balance_contract,
+        "address balance": balance_user,
+        "influencer balance in contract": balance_influ_contract
+    }
+    return final
 
 def check_cause(user, cause):
     from web3 import Web3
@@ -180,13 +185,19 @@ def add_balance(user, amount):
     txn_dict = {
     'gas': 2000000,
     'chainId': 3,
+    'value': amount,
     'gasPrice': w3.toWei('40', 'gwei'),
     'nonce': nonce,
     }
-    contract_txn = contract_instance.functions.add_balance(amount).buildTransaction(txn_dict)
-    signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
-    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
-    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    try:
+        contract_txn = contract_instance.functions.deposit().buildTransaction(txn_dict)
+        signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
+        tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    except ValueError as error:
+        print(type(error))
+        return error
+    print(tx_receipt["cumulativeGasUsed"])
     return tx_receipt
 
 def register_cause(cause):
@@ -194,6 +205,7 @@ def register_cause(cause):
 
     cause_id = cause.id
     goal = cause.goal
+    percentBPS = cause.percentBPS
 
     w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
     d = compile_and_extract_interface_influencer()
@@ -210,12 +222,35 @@ def register_cause(cause):
     'nonce': nonce,
     }
     cause_address = cause.ethereum_public_key
-    contract_txn = contract_instance.functions.addCause(cause_id, goal, cause_address).buildTransaction(txn_dict)
+    #uint _cause_id, uint _goal, address cause_address, uint percentBPS
+    contract_txn = contract_instance.functions.addCause(cause_id, goal, cause_address, percentBPS).buildTransaction(txn_dict)
     signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    logs = contract_instance.events.CauseAdded().processReceipt(tx_receipt)
+    logs = contract_instance.events.CauseCreated().processReceipt(tx_receipt)
 
+    return logs
+
+def createGroup(causes, splits, group_id, user):
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    d = compile_and_extract_interface_influencer()
+    address = user.contract_address
+    private_key = user.ethereum_private_key
+    abi = d["abi"]
+    contract_instance = w3.eth.contract(address=address, abi=abi)
+    eht_account = w3.eth.account.privateKeyToAccount(private_key)
+    nonce = w3.eth.getTransactionCount(eht_account.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    contract_txn = contract_instance.functions.createGroup(causes, splits, group_id).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(contract_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    logs = contract_instance.events.GroupCreated().processReceipt(tx_receipt)
     return logs
 
 ##TODO: add check so that influencer cannot donate to cause
@@ -225,7 +260,8 @@ def donate(validated_donation_serializer, _user):
 
     
     # Compile Luce contract and obtain interface
-    d = compile_and_extract_interface_influencer()
+    d = compile_and_extract_interface_donor()
+    inf = compile_and_extract_interface_influencer()
     
     # Establish web3 connection
     w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
@@ -235,30 +271,86 @@ def donate(validated_donation_serializer, _user):
     user = w3.eth.account.privateKeyToAccount(private_key)
     
     nonce = w3.eth.getTransactionCount(user.address)
+
+    _amount = validated_donation_serializer.validated_data["amount"]
+   # print(nonce)
     txn_dict = {
     'gas': 2000000,
     'chainId': 3,
     'gasPrice': w3.toWei('40', 'gwei'),
     'nonce': nonce,
     }
+
     donor_contract_address = _user.contract_address
-    _amount = validated_donation_serializer.validated_data["amount"]
     _cause_id = validated_donation_serializer.validated_data["cause"].id
     address = validated_donation_serializer.validated_data["cause"].creator.contract_address
-    influencer = w3.eth.contract(address=address, abi = d["abi"] )
-    influencer_txn = influencer.functions.donate(_amount, _cause_id, donor_contract_address).buildTransaction(txn_dict)
-    signed_txn = w3.eth.account.signTransaction(influencer_txn, private_key)
+    donor = w3.eth.contract(address=donor_contract_address, abi = d["abi"] )
+    influencer = w3.eth.contract(address=address, abi = inf["abi"])
+    donor_txn = donor.functions.donate(_cause_id, _amount, address).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(donor_txn, private_key)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     logs = influencer.events.Donate().processReceipt(tx_receipt)
     print(logs)
     return logs
-def searchDonations(user, influencer):
-    donor_address = user.ethereum_public_key
+
+    #uint group_id, uint amount, address influencer_contract_address
+def donateToGroup(donor, group, amount):
+    donorContract = getContract(donor)
+    influencerContract = getContract(group.creator)
+    w3 = Web3(Web3.HTTPProvider("HTTP://127.0.0.1:8545"))
+    
+    # Obtain user so we know his address for the 'from' field
+    private_key = donor.ethereum_private_key
+    user = w3.eth.account.privateKeyToAccount(private_key)
+    
+    nonce = w3.eth.getTransactionCount(user.address)
+    txn_dict = {
+    'gas': 2000000,
+    'chainId': 3,
+    'gasPrice': w3.toWei('40', 'gwei'),
+    'nonce': nonce,
+    }
+    donor_txn = donorContract.functions.donateToGroup(group.id, amount, group.creator.contract_address).buildTransaction(txn_dict)
+    signed_txn = w3.eth.account.signTransaction(donor_txn, private_key)
+    tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    logs = influencerContract.events.Donate().processReceipt(tx_receipt)
+    print(logs)
+    return logs
+
+
+def groupCreations(influencer, group):
     influencerContract = getContract(influencer)
-    event_filter = influencerContract.events.Donate.createFilter(fromBlock='latest')
-    print(event_filter.get_all_entries())
-    return event_filter
+    argument_filters = {}
+    
+    if type(group) is not int:
+        argument_filters["group_id"] = group.id
+    event_filter = influencerContract.events.GroupCreated().createFilter(fromBlock = 0, toBlock= "latest", argument_filters=argument_filters)
+    donations = {}
+    events = event_filter.get_all_entries()
+    counter = 0
+    for event in events:
+        donations[counter] = dict(event["args"])
+        counter += 1
+    return donations
+
+    
+def contractDonations(donor, influencer, cause):
+    influencerContract = getContract(influencer)
+    argument_filters={}
+    if type(donor) is not int:
+        argument_filters["donor_address"] = donor.contract_address
+    if type(cause) is not int:
+        argument_filters["cause_address"] = cause.ethereum_public_key
+    event_filter = influencerContract.events.Donate().createFilter(fromBlock = 0, toBlock= "latest", argument_filters=argument_filters)
+    donations = {}
+    events = event_filter.get_all_entries()
+    counter = 0
+    for event in events:
+        donations[counter] = dict(event["args"])
+        counter += 1
+    return donations
 
 def deploy_contract_v3(_user):
     from solcx import compile_source
@@ -296,13 +388,14 @@ def deploy_contract_v3(_user):
 
     account = w3.eth.account.privateKeyToAccount(_user.validated_data["ethereum_private_key"])
     nonce = w3.eth.getTransactionCount(user_address)
+    print(w3.eth.getBlock('latest'))
 
     transaction = {
     'from': user_address,
-    'gas': 2000000,
+    'gas': 6000000,
     'data': bytecode,
     'chainId': 3,
-    'gasPrice': w3.toWei('40', 'gwei'),
+    'gasPrice': w3.toWei('4', 'gwei'),
     'nonce': nonce,
     }
 
@@ -316,24 +409,19 @@ def deploy_contract_v3(_user):
     # Obtain address of freshly deployed contract
     contractAddress = tx_receipt.contractAddress
     _user.validated_data["contract_address"] = contractAddress
-    
-
-    d = compile_and_extract_interface_donor()
     nonce = w3.eth.getTransactionCount(contractAddress)
-
     txn_dict = {
-    'gas': 2000000,
+    'gas': 6000000,
     'chainId': 3,
     'gasPrice': w3.toWei('40', 'gwei'),
     'nonce': nonce,
     }
 
-    donor = w3.eth.contract(address=contractAddress, abi = d["abi"], bytecode=bytecode )
+    donor = w3.eth.contract(address=contractAddress, abi = abi, bytecode=bytecode )
     donor_txn = donor.constructor(_user.data["id"]).buildTransaction(txn_dict)
     signed_txn = w3.eth.account.signTransaction(donor_txn, private_key)
     tx_hash = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
-    
     return tx_receipt
 
 

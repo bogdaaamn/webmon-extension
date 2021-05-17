@@ -1,11 +1,15 @@
+import re
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.http import is_safe_url
-from accounts.models import User, Donation, Cause
+from django.utils.regex_helper import Group
+from accounts.models import User, Donation, Cause, CauseGroup
 from rest_framework import serializers, authentication, permissions
 from rest_framework import generics
 from rest_framework import filters
+from rest_framework import viewsets
+
 
 
 from django.http import JsonResponse
@@ -42,7 +46,11 @@ register_cause,
 add_balance,
 check_balance,
 check_cause,
-searchDonations
+createGroup, 
+contractDonations,
+groupCreations,
+donateToGroup,
+check_balance_influencer,
 )
 
 from .serializers import (
@@ -52,7 +60,9 @@ from .serializers import (
     CauseSerializer,
     DonationSerializer,
     PublicCauseSerializer, 
-    PublicDonationSerializer)
+    PublicDonationSerializer,
+    PublicGroupSerializer,
+    PublicGroupInfoSerializer)
 
 
 
@@ -81,12 +91,13 @@ class FundUser(APIView):
             errors["amount"] = ["This field is required"]
         if errors:
             return Response(errors)
-        
         user = request.user
         amount = request.data.get("amount")
-        a = add_balance(user, amount)
-        balance = check_balance(user)
-        return Response({"message":"blance updatad successfully", "balance":balance})
+        receipt = add_balance(user, amount)
+        if type(receipt) is ValueError:
+            raise receipt
+        balances = check_balance(user)
+        return Response({"message":"blance updatad successfully", "balances":balances, "gas used":receipt["cumulativeGasUsed"]})
 
 #get a list of all users
 class ListUsers(APIView):
@@ -122,6 +133,137 @@ class UserSearch(generics.ListAPIView):
     serializer_class = PublicUserSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ["email", "first_name", "last_name", "ethereum_public_key"]
+
+class GroupSearch(generics.ListAPIView):
+    queryset = CauseGroup.objects.all()
+    serializer_class = PublicGroupSerializer
+    permission_classes = [permissions.AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["id"]
+
+class DonorBalanceView(APIView):
+    def post(self, request, format=None):
+        if "donor" not in request.data:
+            return Response({"errors":"donor must be specified"})
+        if User.objects.filter(pk = request.data["donor"]).count() != 1:
+            return Response({"errors":"donor id not found"})
+        donor = User.objects.get(pk = request.data["donor"])
+        if donor.user_type != 1:
+            return Response({"errors":"donor id must be of a donor, not influencer"})
+        balance = check_balance(donor)
+        return Response(balance)
+class InfluecerBalanceView(APIView):
+    def post(self, request, format=None):
+        if "influencer" not in request.data:
+            return Response({"errors":"influencer must be specified"})
+        if User.objects.filter(pk = request.data["influencer"]).count() != 1:
+            return Response({"errors":"influencer id not found"})
+        influencer = User.objects.get(pk = request.data["influencer"])
+        if influencer.user_type != 0:
+            return Response({"errors":"influencer id must be of a influencer, not donor"})
+        balance = check_balance_influencer(influencer)
+        return Response(balance)
+
+class ContractGroups(APIView):
+    def post(self, request, format=None):
+        errors = []
+        if "influencer" not in request.data:
+            errors.append("must specify influencer id")  
+        if "group" not in request.data:
+            group = 0 
+        else:
+            if CauseGroup.objects.filter(pk = request.data["group"]).count() !=1:
+                return Response({"errors":"group id not found"})
+            group = CauseGroup.objects.get(pk = request.data["group"])
+            
+        if len(errors) != 0:
+            return Response({"errors":errors})
+        if User.objects.filter(pk = request.data["influencer"]).count() != 1:
+            errors.append("influencer with this id not found")
+            return Response({"errors":errors})
+        influencer = User.objects.get(pk = request.data["influencer"])
+        if influencer.user_type != 0:
+            errors.append("influencer id must be of influencer")
+
+        events = groupCreations(influencer, group)   
+        return Response(events)
+
+
+
+class ContractDonations(APIView):
+    def post(self, request, format=None):
+        errors = []
+        if "influencer" not in request.data:
+            errors.append("influencer id not specified")
+        if User.objects.filter(pk = request.data["influencer"]).count() != 1:
+            errors.append("influencer with this id not found")
+            return Response({"errors":errors})
+
+        if len(errors) != 0:
+            return Response({"errors":errors})
+        influencer = User.objects.get(pk = request.data["influencer"])
+
+        if "user" not in request.data:
+            donor = 0
+        else:
+            if User.objects.filter(pk = request.data["user"]).count() != 1:
+                errors.append("donor with this id not found")
+                return Response({"errors":errors})
+
+            donor = User.objects.get(pk = request.data["user"])
+            if donor.user_type != 1:
+                errors.append("user id must be of donor")
+            
+        if "cause" not in request.data:
+            cause = 0
+        else:
+            if  Cause.objects.filter(pk = request.data["cause"]).count() != 1:
+                errors.append("cause with this id not found")
+                return Response({"errors":errors})
+            cause = Cause.objects.get(pk = request.data["cause"])
+            if cause.creator.id != influencer.id :
+                errors.append("this cause id not from this influencer")
+        if influencer.user_type != 0:
+            errors.append("influecer id must be of influencer")
+        if len(errors) != 0:
+            return Response({"errors":errors})
+            
+        events  = contractDonations(donor, influencer, cause)
+        return Response(events)
+
+class RegisterGroup(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, format=None):
+        if "info" not in request.data:
+            return Response({"error":"you must specify a info array"})
+        infodata = request.data.pop("info")
+        request.data["creator"] = request.user.id
+        group_serializer = PublicGroupSerializer(data =  request.data)
+        valid1 = group_serializer.is_valid()
+        if not valid1:
+            return Response({"1":group_serializer.errors})
+        group = group_serializer.save()
+        sum = 0
+        serials = []
+        causes_ids = []
+        splits = []
+        for info in infodata:
+            info["group"] = group.id
+            sum += info["split"]
+            info_serializer = PublicGroupInfoSerializer(data = info)
+            valid2 = info_serializer.is_valid()
+            if not valid2:
+                return Response({"2":info_serializer.errors})
+            serials.append(info_serializer)
+        for serializer in serials:
+            serializer.save()
+            causes_ids.append(serializer.data["cause"])
+            splits.append(serializer.data["split"])
+        if sum != 10000:
+            return Response({"error":"split sum incomplete"})
+        print(createGroup(causes_ids, splits, group.id, request.user))
+        return Response(info_serializer.data)
+        
 
 #APIview for registering a cause
 class RegisterCause(APIView):
@@ -188,6 +330,25 @@ class CauseSearchByInfluencer(generics.ListAPIView):
     search_fields = ["creator__first_name", "creator__last_name", "creator__email"]
     
 
+class CreateDonationToGroup(APIView):
+    authentication_classes = [authentication.TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request, format=None):
+        donor = request.user
+        errors =[]
+        if "group" not in request.data:
+            errors.append("group id must be specified")
+        if "amount" not in request.data:
+            errors.append("amount must be specified")
+        if len(errors) != 0:
+            return Response({"errors":errors})
+        amount = request.data["amount"]
+        group_id = request.data["group"]
+        if CauseGroup.objects.filter(pk = group_id).count() != 1:
+            return Response({"error":"group id not found"})
+        group = CauseGroup.objects.get(pk = group_id)
+        donateToGroup(donor, group, amount)
+        return Response({"success":"donation was successfull"})
 
 class createDonation(APIView):
     authentication_classes = [authentication.TokenAuthentication]
@@ -203,8 +364,9 @@ class createDonation(APIView):
             return Response({"error":"the donor id doesn't correspond to the authenticated user"})
         if not valid:
             return Response(donation_serializer.errors)
-        logs = donate(validated_donation_serializer = donation_serializer, _user = request.user)
+        logs = donate(validated_donation_serializer = donation_serializer,  _user = request.user)
         donation_serializer.save()
+
         return Response({"donation":donation_serializer.data},status=status.HTTP_201_CREATED) 
   
 

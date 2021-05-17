@@ -1,3 +1,4 @@
+from re import A
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.urlpatterns import format_suffix_patterns
@@ -20,7 +21,14 @@ from .views import (
     DonationSearchByCause,
     DonationSearchByDonor, DonationSearchByCauseID,
     DonationSearchByDonorID, 
-    CheckCause
+    CheckCause, 
+    RegisterGroup,
+    ContractDonations,
+    ContractGroups,
+    CreateDonationToGroup,
+    GroupSearch,
+    DonorBalanceView,
+    InfluecerBalanceView
     )
 
 # Import settings to access environment variables 
@@ -53,7 +61,8 @@ from datastore.views import (
     my_access_view,
     upload_success_view,
     publish_success_view,
-    update_success_view
+    update_success_view,
+    
 	)
 
 
@@ -65,6 +74,7 @@ urlpatterns = [
     path('user/all/', UserSearch.as_view(), name = "user-search-all"),
     path('api-token-auth/', views.obtain_auth_token, name = "api-token-auth") ,
     path('donation/create/', createDonation.as_view(), name = "donation-create"), 
+    path('donation/create/group/', CreateDonationToGroup.as_view(), name = "donation to group"),
     path('donation/get/', getDonation.as_view(), name="donation-get"),
     path('donation/cause/', DonationSearchByCause.as_view(), name = "donation-search-by-cause"),
     path('donation/cause/id/', DonationSearchByCauseID.as_view(), name="donatoin-search-by-cause-id"),
@@ -76,6 +86,12 @@ urlpatterns = [
     path('cause/influencer/', CauseSearchByInfluencer.as_view(), name="cause-search-influencer"),
     path('cause/influencer/id/', CauseSearchByInfluencerID.as_view(), name="cause-search-influencer-id"),
     path('cause/check/', CheckCause.as_view(), name="check"),
+    path('group/register/', RegisterGroup.as_view(), name="register group"),
+    path('group/id/', GroupSearch.as_view(), name="group search"),
+    path('contract/donations/', ContractDonations.as_view(), name="contract donations"),
+    path('contract/groups/', ContractGroups.as_view(), name="contract"),
+    path('contract/donor/balance', DonorBalanceView.as_view(), name="donor-balance"),
+    path('contract/influencer/balance', InfluecerBalanceView.as_view(), name="influencer balance"),
     path('deploy/', DeployContract.as_view()),
     path('luce_admin/', admin.site.urls),
     path('login-uphold/', login),
