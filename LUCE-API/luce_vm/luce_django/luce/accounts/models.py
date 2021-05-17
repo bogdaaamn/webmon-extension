@@ -173,7 +173,6 @@ class Cause(models.Model):
     ethereum_private_key = models.CharField(max_length=255, blank=True, null=True)
     ethereum_public_key = models.CharField(max_length=255, blank=True, null=True)
     percentBPS = models.IntegerField(validators=[MaxValueValidator(10000), MinValueValidator(0)], default=10000)
-
     creator = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
 
 

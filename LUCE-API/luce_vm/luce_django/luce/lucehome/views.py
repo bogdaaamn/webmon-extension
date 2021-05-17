@@ -231,6 +231,8 @@ class ContractDonations(APIView):
         events  = contractDonations(donor, influencer, cause)
         return Response(events)
 
+
+
 class RegisterGroup(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request, format=None):
@@ -294,17 +296,12 @@ class CheckCause(APIView):
         if not causeObject.exists():
             errors["cause_not_found"] = "no cause found with this id" 
         if errors:
-            return Response(errors)
-        
+            cause = ""
+            
         cause = check_cause(user, causeObject.first())
 
-        if cause[0] == False:
-            errors["cause_not_found"] = "no cause found with this id in the blockchain"
-        if errors:
-            return Response(errors)
-
-        response = {"cause_goal":cause[1], "cause_balance": cause[2], "cause_address": cause[3]}
-        return Response(response)
+        
+        return Response(cause)
         
         
         

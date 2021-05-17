@@ -28,7 +28,7 @@ from .views import (
     CreateDonationToGroup,
     GroupSearch,
     DonorBalanceView,
-    InfluecerBalanceView
+    InfluecerBalanceView,
     )
 
 # Import settings to access environment variables 
@@ -89,7 +89,7 @@ urlpatterns = [
     path('group/register/', RegisterGroup.as_view(), name="register group"),
     path('group/id/', GroupSearch.as_view(), name="group search"),
     path('contract/donations/', ContractDonations.as_view(), name="contract donations"),
-    path('contract/groups/', ContractGroups.as_view(), name="contract"),
+    path('contract/groups/', ContractGroups.as_view(), name="contract groups"),
     path('contract/donor/balance', DonorBalanceView.as_view(), name="donor-balance"),
     path('contract/influencer/balance', InfluecerBalanceView.as_view(), name="influencer balance"),
     path('deploy/', DeployContract.as_view()),

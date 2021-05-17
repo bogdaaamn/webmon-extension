@@ -164,9 +164,19 @@ def check_cause(user, cause):
     }
 
     contract_txn = contract_instance.functions.causes(cause.id).call()
-
-    
-    return contract_txn
+    if contract_txn[0] == True:
+            
+        final = {
+            "cause_goal" : contract_txn[1],
+            "cause_balance" : contract_txn[2],
+            "cause_PBS" : contract_txn[3],
+            "cause_address" : contract_txn[4]
+        }
+    else:
+        final = {
+            "error":"cause does not exits"
+        }    
+    return final
 
 def add_balance(user, amount):
     from web3 import Web3
