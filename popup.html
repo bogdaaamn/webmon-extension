@@ -1,56 +1,48 @@
 <!doctype html>
-<!--
- This page is shown when the extension button is clicked, because the
- "browser_action" field in manifest.json contains the "default_popup" key with
- value "popup.html".
- -->
-<html>
-  <head>
-    <title>Getting Started Extension's Popup</title>
-    <style>
-      body {
-        font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-        font-size: 100%;
-      }
-      #status {
-        /* avoid an excessively wide status text */
-        white-space: pre;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        max-width: 400px;
-      }
-    </style>
-    
 
-    
+<html style="width:337px; height:350px;">
 
-    
-    <title>Extesión</title>
-  </head>
-  <body>
+<head>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div id='influencer_or_user'>
+    <br>
+    <button id="influencer"
+      style="background-repeat:no-repeat;cursor:pointer;overflow: hidden;outline:none; position: relative;top: -20px;">
+      <h1> influencer</h1>
+    </button>
+
+    <button id="user"
+      style="background-repeat:no-repeat;cursor:pointer;overflow: hidden;outline:none; position: relative;top: -20px;">
+
+      <h1>User</h1>
+    </button>
+  </div>
+
+  <div class="form-style-6" id='signup_form'>
+
     <h1>Log in</h1>
-    <div class="form-style-6">
-      <form id='signup'>
+
+    <form id='signup'>
       <input type="email" name="email" placeholder="Email Address" />
       <input type="text" name="first_name" placeholder="First Name" />
       <input type="text" name="last_name" placeholder="Last Name" />
       <input type="password" name="password" placeholder="Password" />
-        <input type="radio" id="donor_checkbox" name="user_type" value=0
-               checked>
-        <label for="user_type">Donor</label>
-  
-        <input type="radio" id="influencer_checkbox" name="user_type" value=1>
-        <label for="dewey">Influencer</label>
+      <input type="radio" id="donor_checkbox" name="user_type" value=0 checked>
+      <label for="user_type">Donor</label>
 
-      </div>
+      <input type="radio" id="influencer_checkbox" name="user_type" value=1>
+      <label for="dewey">Influencer</label>
+
+
       <input type="submit" value="Send" />
-      </form>
-      <br>
-      </div>
-    <div class="container">
+    </form>
+    <br>
+  </div>
 
-        <button class="btn", id='connect'><img src="connect.svg" alt="Connect to your Uphold account"></button>
-    </div>
-    <script src="popup.js"></script>
-  </body>
+  <script src="popup.js"></script>
+</body>
+
 </html>
