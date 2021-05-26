@@ -32,7 +32,7 @@ export function createInfluencerScreen(payload) {
   console.log(payload)
 
   document.getElementById('influencer_or_user').style.display = 'none'
-  document.getElementById('signup_form').style.display = 'none'
+  // document.getElementById('signup_form').style.display = 'none'
 
   let create_new_campaign_div = document.createElement('div')
   let create_new_campaign_btn = document.createElement('button')
@@ -122,7 +122,7 @@ export function createUserScreen(payload_user) {
 
   // search for a campaign
   document.getElementById('influencer_or_user').style.display = 'none'
-  document.getElementById('signup_form').style.display = 'none'
+  // document.getElementById('signup_form').style.display = 'none'
 
   let search_for_a_campaign_div = document.createElement('div')
   let search_for_a_campaign_search_box = document.createElement('input')
