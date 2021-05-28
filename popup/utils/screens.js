@@ -3,10 +3,15 @@ export function sup() {
 }
 
 export function auth_screen() {
-  
+
   let root = document.getElementById('root')
+
   let log_in_div = document.createElement('div')
   log_in_div.id = 'log_in_div'
+
+  let text_login_here = document.createElement('p')
+  text_login_here.innerHTML = 'Login here'
+  log_in_div.append(text_login_here)  
 
   let email_field = document.createElement('input')
   email_field.placeholder = "Email"
