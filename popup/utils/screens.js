@@ -2,6 +2,120 @@ export function sup() {
   console.log('yoooooo');
 }
 
+export function auth_screen() {
+  
+  let root = document.getElementById('root')
+  let log_in_div = document.createElement('div')
+  log_in_div.id = 'log_in_div'
+
+  let email_field = document.createElement('input')
+  email_field.placeholder = "Email"
+
+  let password_field = document.createElement('input')
+  password_field.placeholder = "Password"
+  
+  let log_in_button = document.createElement('button')
+  log_in_button.innerHTML = 'Login'
+
+  log_in_div.appendChild(email_field)
+  
+  log_in_div.appendChild(password_field)
+  
+  log_in_div.appendChild(document.createElement("br"))
+  log_in_div.appendChild(document.createElement("br"))
+  
+  log_in_div.appendChild(log_in_button)
+
+  let text_dont_have_acc_yet = document.createElement('p')
+  text_dont_have_acc_yet.innerHTML = 'Dont have an account yet?'
+  log_in_div.appendChild(document.createElement("br"))
+
+  let sign_up_button = document.createElement('button')
+  sign_up_button.innerHTML = 'Sign up'  
+  sign_up_button.id = 'sign_up_button'
+
+  log_in_div.append(text_dont_have_acc_yet)  
+  log_in_div.append(sign_up_button)  
+  
+  root.appendChild(log_in_div)
+
+
+  document.getElementById('sign_up_button').addEventListener('click', () => {
+
+    log_in_div.style.display = "none"
+    
+    let sign_up_div = document.createElement('div')
+    sign_up_div.id = 'sign_up_div'
+    
+    let sign_up_button = document.createElement('button')
+    sign_up_button.innerHTML = 'Sign Up'
+
+    sign_up_button.id = 'sign_up_button'
+  
+    sign_up_div.appendChild(email_field)
+    
+    sign_up_div.appendChild(password_field)
+    
+    sign_up_div.appendChild(document.createElement("br"))
+    
+    let first_name_field = document.createElement('input')
+    first_name_field.placeholder = "First Name"
+
+    let last_name_field = document.createElement('input')
+    last_name_field.placeholder = "Last Name"
+
+    let user_type_field = document.createElement('input')
+    user_type_field.type = 'radio'
+    user_type_field.name = 'user_type'
+    user_type_field.value = 0
+    user_type_field.checked
+
+    let user_type__donor_label = document.createElement('label')
+    user_type__donor_label.for = 'user_type'
+    user_type__donor_label.innerHTML = 'Donor'
+
+    let user_type_field_ = document.createElement('input')
+    user_type_field_.type = 'radio'
+    user_type_field_.name = 'dewey'
+    user_type_field_.value = 1
+
+    let user_type__influencer_label = document.createElement('label')
+    user_type__influencer_label.for = 'dewey'
+    user_type__influencer_label.innerHTML = 'Influencer'
+
+    
+    sign_up_div.appendChild(first_name_field)
+    sign_up_div.appendChild(last_name_field)
+    sign_up_div.appendChild(document.createElement("br"))
+    sign_up_div.appendChild(user_type_field)
+    
+    sign_up_div.appendChild(user_type__donor_label)
+    sign_up_div.appendChild(user_type_field_  )
+    
+    sign_up_div.appendChild(user_type__influencer_label)
+    
+    sign_up_div.appendChild(document.createElement("br"))
+    
+    sign_up_div.appendChild(sign_up_button)
+
+    root.appendChild(sign_up_div)
+  
+  });
+
+  document.getElementById('sign_up_button').addEventListener('submit', (event) => {
+    let email = event.target["email"].value
+    let firstName = event.target["first_name"].value
+    let lastName = event.target["last_name"].value
+    let password = event.target["password"].value
+    let user_type = event.target["user_type"].value
+  
+    
+  
+  })
+}
+
+auth_screen()
+
 export function details_campaign(campaign_details_data) {
   let details_donation_div = document.createElement('div')
 
@@ -31,8 +145,8 @@ export function createInfluencerScreen(payload) {
   console.log('button clicked')
   console.log(payload)
 
-  document.getElementById('influencer_or_user').style.display = 'none'
-  // document.getElementById('signup_form').style.display = 'none'
+  document.getElementById('root').style.display = 'none'
+  document.getElementById('signup_form').style.display = 'none'
 
   let create_new_campaign_div = document.createElement('div')
   let create_new_campaign_btn = document.createElement('button')
@@ -121,8 +235,8 @@ export function createUserScreen(payload_user) {
   console.log('user button clicked')
 
   // search for a campaign
-  document.getElementById('influencer_or_user').style.display = 'none'
-  // document.getElementById('signup_form').style.display = 'none'
+  document.getElementById('root').style.display = 'none'
+  document.getElementById('signup_form').style.display = 'none'
 
   let search_for_a_campaign_div = document.createElement('div')
   let search_for_a_campaign_search_box = document.createElement('input')
