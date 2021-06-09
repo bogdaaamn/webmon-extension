@@ -1,33 +1,35 @@
 import * as screens from './utils/screens.js';
+import * as api from './utils/api.js';
 
 let form = document.getElementById('signup')
 
-document.getElementById('influencer').addEventListener('click', () => {
+document.getElementById('influencer').addEventListener('click', async () => {
   //make API call
-  let data = [
-    {
-      'name': 'Campaign #1',
-      'description':'This is the description',
-      'donated': 250,
-      'collected':300,
-      'goal':500
-    },
-    {
-      'name': 'Campaign food for Cats',
-      'description':'Lets feed the susperior species',
-      'donated': 5550,
-      'collected': 500000000,
-      'goal': 1000000000
-    },
-    {
-      'name': 'Campaign food for dogs',
-      'description':'I guess these beings also deserve some food?',
-      'donated': 0.5,
-      'collected': -12,
-      'goal' :13
-    }
-  ]
-  
+  // let data = [
+  //   {
+  //     'name': 'Campaign #1',
+  //     'description':'This is the description',
+  //     'donated': 250,
+  //     'collected':300,
+  //     'goal':500
+  //   },
+  //   {
+  //     'name': 'Campaign food for Cats',
+  //     'description':'Lets feed the susperior species',
+  //     'donated': 5550,
+  //     'collected': 500000000,
+  //     'goal': 1000000000
+  //   },
+  //   {
+  //     'name': 'Campaign food for dogs',
+  //     'description':'I guess these beings also deserve some food?',
+  //     'donated': 0.5,
+  //     'collected': -12,
+  //     'goal' :13
+  //   }
+  // ]
+  let data = await api.getUserCauses();
+
   screens.createInfluencerScreen(data);
 
   //influencer_or_user.appendChild(create_new_campaign_div)
@@ -36,32 +38,41 @@ document.getElementById('influencer').addEventListener('click', () => {
   });
 });
 
-document.getElementById('user').addEventListener('click', () => {
-  let payload_user = [
-    {
-      'name': 'Campaign #1',
-      'description':'This is the description',
-      'donated': 250,
-      'collected':300,
-      'goal':500
-    },
-    {
-      'name': 'Campaign food for Cats',
-      'description':'Lets feed the superior species',
-      'donated': 5550,
-      'collected': 500000000,
-      'goal': 1000000000
-    },
-    {
-      'name': 'Campaign food for dogs',
-      'description':'I guess these beings also deserve some food?',
-      'donated': 0.5,
-      'collected': -12,
-      'goal' :13
-    }
-  ]
+document.getElementById('user').addEventListener('click', async () => {
+  // let payload_user = [
+  //   {
+  //     'name': 'Campaign #1',
+  //     'description':'This is the description',
+  //     'donated': 250,
+  //     'collected':300,
+  //     'goal':500
+  //   },
+  //   {
+  //     'name': 'Campaign food for Cats',
+  //     'description':'Lets feed the superior species',
+  //     'donated': 5550,
+  //     'collected': 500000000,
+  //     'goal': 1000000000
+  //   },
+  //   {
+      // 'name': 'Campaign food for dogs',
+      // 'description':'I guess these beings also deserve some food?',
+      // 'donated': 0.5,
+      // 'collected': -12,
+      // 'goal' :13
+  //   }
+  // ]
 
-  screens.createUserScreen(payload_user);
+  let user_donations = await api.getUserDonations();
+  let data = user_donations.map(async donation => {
+    const donation_data = await api.getCause(donation.cause)
+    console.dir(donation);
+    return {'value': donation.value, ...donation_data};
+  })
+
+  console.log(await Promise.all(data))
+
+  screens.createUserScreen(await Promise.all(data));
 
   // right now it looks for any click in the details of the campaigns
   

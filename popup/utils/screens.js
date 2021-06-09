@@ -1,3 +1,5 @@
+import * as api from './api.js';
+
 export function sup() {
   console.log('yoooooo');
 }
@@ -131,7 +133,7 @@ export function details_campaign(campaign_details_data) {
   campaign_description.innerHTML = campaign_details_data.description
 
   let campaign_performance = document.createElement('p')
-  campaign_performance.innerHTML = 'This campaign already recieved ' + campaign_details_data.collected + '$ out of the initial ' + campaign_details_data.goal + '$ collection goal'
+  campaign_performance.innerHTML = 'This campaign already recieved ' + campaign_details_data.donated + '$ out of the initial ' + campaign_details_data.goal + '$ collection goal'
 
   details_donation_div.appendChild(campaign_title)
   let next_line = document.createElement('br')
@@ -295,7 +297,7 @@ export function createUserScreen(payload_user) {
     td_name.innerHTML = camp.name;
 
     let td_value = document.createElement('td')
-    td_value.innerHTML = `${camp.donated}$ donated`
+    td_value.innerHTML = `${camp.value}$ donated`
 
     let details_donation = document.createElement('button')
     details_donation.id = 'details_donation ' + index
@@ -324,7 +326,7 @@ export function createUserScreen(payload_user) {
 
       //let campaign_details_data = {'title_campaign': 'Campaign #1','description': 'Here goes the text that describes the pourpose of this campaign','collected': 230,'goal' : 500 }
 
-      title_details_donation.innerHTML = 'You donated ' + payload_user[i].donated + '$ to ' + payload_user[i].name
+      title_details_donation.innerHTML = 'You donated ' + payload_user[i].value + '$ to ' + payload_user[i].name
 
       //let h1_title_campaign = document.createElement('h1')    h1_title_campaign.innerHTML = payload_user[i].name    h1_title_campaign.style.textAlign = 'center'
 
@@ -375,6 +377,21 @@ export function createCampaignForm() {
     let create_campaign_btn = document.createElement('input');
     create_campaign_btn.type = 'submit'
     create_campaign_btn.value = 'Create Campaign'
+
+    create_campaign_btn.addEventListener('click', async (e) => {
+      e.preventDefault()
+
+      let form_data = {
+        "title": title_new_campaign.value,
+        "description": new_campaign_description.value
+      };
+
+      let result = await api.postUserCauses(form_data);
+
+      let success_text = document.createElement('p');
+      success_text.innerHTML = `<b>${result.name}</b> successfully added.`;
+      new_campaign_form.appendChild(success_text)
+    });
 
     new_campaign_form.appendChild(back_btn)
     new_campaign_form.appendChild(create_campaign_btn)

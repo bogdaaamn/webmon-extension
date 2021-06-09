@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://60b0b5971f26610017ffeffc.mockapi.io/api/mockup/v1';
 
 export function getToken() {
 
@@ -38,7 +38,7 @@ export function postAuthUser(payload) {
     .catch(error => console.log('error', error));
 }
 
-export function getUserInfo() {
+export async function getUserInfo() {
   let token = '688f8416104559e8562f458b7b15c33a9fa41716'
 
   let myHeaders = new Headers();
@@ -46,16 +46,15 @@ export function getUserInfo() {
 
   let requestOptions = {
     method: 'GET',
-    headers: myHeaders,
+    // headers: myHeaders,
   };
 
-  fetch(`${API_URL}/user/`, requestOptions)
-    .then(response => response.json())
-    .then(result => console.log(result))
-    .catch(error => console.log('error', error));
+  let response = await fetch(`${API_URL}/user/2`, requestOptions);
+  let result = response.json();
+  return result;
 }
 
-export function getUserCauses() {
+export async function getCause(id) {
   let token = '688f8416104559e8562f458b7b15c33a9fa41716'
 
   let myHeaders = new Headers();
@@ -63,14 +62,78 @@ export function getUserCauses() {
 
   let requestOptions = {
     method: 'GET',
+    // headers: myHeaders,
+  };
+
+  let response = await fetch(`${API_URL}/cause/${id}`, requestOptions);
+  let result= await response.json();
+  return result;
+}
+
+export async function getUserCauses() {
+  let token = '688f8416104559e8562f458b7b15c33a9fa41716'
+
+  let myHeaders = new Headers();
+  myHeaders.append("Authorization", `Token ${token}`);
+
+  let requestOptions = {
+    method: 'GET',
+    // headers: myHeaders,
+  };
+
+  let user = await getUserInfo();
+  console.log(user.id)
+
+  let response = await fetch(`${API_URL}/cause/`, requestOptions);
+  let result= await response.json();
+  return result.filter(cause => cause.creator === Number(user.id));
+}
+
+export async function postUserCauses(payload) {
+  let token = '688f8416104559e8562f458b7b15c33a9fa41716'
+
+  let myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  // myHeaders.append("Authorization", `Token ${token}`);
+
+  let user = await getUserInfo();
+  console.log(user.id)
+
+  var raw = JSON.stringify({
+    "creator": Number(user.id),
+    "name": payload.title,
+    "description": payload.description,
+    "donated": 0,
+    "collected": 0,
+    "goal": 0
+  });
+
+  let requestOptions = {
+    method: 'POST',
+    body: raw,
     headers: myHeaders,
   };
 
-  fetch(`${API_URL}/cause/?search=`, requestOptions)
-    .then(response => response.json())
-    .then(result => {
-      console.log(result.results.filter(cause => cause.creator.id === 1))
-      return result.results.map(cause => cause.creator.id === 1)
-    })
-    .catch(error => console.log('error', error));
+  let response = await fetch(`${API_URL}/cause/`, requestOptions);
+  let result= await response.json();
+  return result;
+}
+
+export async function getUserDonations() {
+  let token = '688f8416104559e8562f458b7b15c33a9fa41716'
+
+  let myHeaders = new Headers();
+  myHeaders.append("Authorization", `Token ${token}`);
+
+  let requestOptions = {
+    method: 'GET',
+    // headers: myHeaders,
+  };
+
+  let user = await getUserInfo();
+  console.log(user.id)
+
+  let response = await fetch(`${API_URL}/donation/`, requestOptions);
+  let result= await response.json();
+  return result.filter(cause => cause.donor === Number(user.id));
 }
