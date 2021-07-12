@@ -10,8 +10,7 @@
   },
   "content_scripts":[{
     "js":[ "injectbutton.js"], 
-    "matches":["*://www.youtube.com/watch*"],
-    "css": ["styles.css"]
+    "matches":["*://www.youtube.com/watch*"]
     }], 
     
   "permissions": [

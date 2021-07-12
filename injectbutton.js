@@ -1,4 +1,4 @@
-import * as api from './api.js';
+// import * as api from './api.js';
 
 function details_campaign(campaign_details_data, popup_from_button, win) {
   let details_donation_div = document.createElement('div')
@@ -51,7 +51,7 @@ function details_campaign(campaign_details_data, popup_from_button, win) {
   }
   
   fnAddButtons();
-
+  // new_window();
  function new_window(){
     console.log('the button was clicked')
     var win = window.open("", "Title", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=480,height=200,top="+(screen.height-400)+",left="+(screen.width-700));
