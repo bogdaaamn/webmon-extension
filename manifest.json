@@ -19,7 +19,9 @@
     "http://*/*",
     "activeTab",
     "tabs",
-    "https://ajax.googleapis.com/"
+    "https://ajax.googleapis.com/", 
+    "storage"
+
   ]
 }
 
