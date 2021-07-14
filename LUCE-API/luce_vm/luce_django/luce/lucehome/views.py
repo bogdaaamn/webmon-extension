@@ -89,9 +89,11 @@ class FundUser(APIView):
         errors = {}
         if "amount" not in request.data:
             errors["amount"] = ["This field is required"]
+        user = request.user
+        if user.type == 0:
+            errors["user"] = ["influencers cannot fund their"]
         if errors:
             return Response(errors)
-        user = request.user
         amount = request.data.get("amount")
         receipt = add_balance(user, amount)
         if type(receipt) is ValueError:
@@ -366,8 +368,18 @@ class createDonation(APIView):
 
         return Response({"donation":donation_serializer.data},status=status.HTTP_201_CREATED) 
   
-
-
+class UserDonations(APIView):
+    def get(self, request, format=None):
+        if "donor_id" not in request.data:
+            return Response({"errors":"donor_id field is required"})
+        donations = Donation.objects.filter(donor_id = request.data["donor_id"])
+        print(donations)
+        donations_data = []
+        for donation in donations:
+            donation_serializer = PublicDonationSerializer(donation , context = {"request":request})
+            donations_data.append(donation_serializer.data)
+        
+        return Response(donations_data)
 class getDonation(APIView):
       def get(self, request, format=None):
         if "id" not in request.data:

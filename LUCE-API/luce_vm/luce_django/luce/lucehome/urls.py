@@ -29,6 +29,7 @@ from .views import (
     GroupSearch,
     DonorBalanceView,
     InfluecerBalanceView,
+    UserDonations,
     )
 
 # Import settings to access environment variables 
@@ -72,6 +73,7 @@ urlpatterns = [
     path('user/fund/', FundUser.as_view(), name="fund"),
     path('user/donor/', DonorSearch.as_view(), name="donor-search"),
     path('user/all/', UserSearch.as_view(), name = "user-search-all"),
+    path('user/donations/', UserDonations.as_view(), name="user donations"),
     path('api-token-auth/', views.obtain_auth_token, name = "api-token-auth") ,
     path('donation/create/', createDonation.as_view(), name = "donation-create"), 
     path('donation/create/group/', CreateDonationToGroup.as_view(), name = "donation to group"),
@@ -90,8 +92,8 @@ urlpatterns = [
     path('group/id/', GroupSearch.as_view(), name="group search"),
     path('contract/donations/', ContractDonations.as_view(), name="contract donations"),
     path('contract/groups/', ContractGroups.as_view(), name="contract groups"),
-    path('contract/donor/balance', DonorBalanceView.as_view(), name="donor-balance"),
-    path('contract/influencer/balance', InfluecerBalanceView.as_view(), name="influencer balance"),
+    path('contract/donor/balance/', DonorBalanceView.as_view(), name="donor-balance"),
+    path('contract/influencer/balance/', InfluecerBalanceView.as_view(), name="influencer balance"),
     path('deploy/', DeployContract.as_view()),
     path('luce_admin/', admin.site.urls),
     path('login-uphold/', login),

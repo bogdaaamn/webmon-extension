@@ -179,7 +179,7 @@ class Cause(models.Model):
 class Donation(models.Model):
     cause = models.ForeignKey(Cause, on_delete=models.CASCADE)
     donor = models.ForeignKey(User, on_delete=models.CASCADE)
-    amount = models.IntegerField()
+    amount = models.IntegerField(default = 0)
 
 
 
