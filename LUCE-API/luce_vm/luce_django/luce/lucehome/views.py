@@ -140,6 +140,7 @@ class GroupSearch(generics.ListAPIView):
     queryset = CauseGroup.objects.all()
     serializer_class = PublicGroupSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["id"]
 
@@ -311,6 +312,7 @@ class CheckCause(APIView):
 class CauseSearch(generics.ListAPIView):
     queryset = Cause.objects.all()
     permission_classes = [permissions.AllowAny]
+    pagination_class=None
     serializer_class = PublicCauseSerializer
     search_fields = ["title", "description", "ethereum_public_key"]
     
@@ -318,6 +320,7 @@ class CauseSearchByInfluencerID(generics.ListAPIView):
     queryset = Cause.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicCauseSerializer
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["=creator__id"]
     
@@ -325,6 +328,7 @@ class CauseSearchByInfluencer(generics.ListAPIView):
     queryset = Cause.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicCauseSerializer
+    pagination_class=None 
     filter_backends = [filters.SearchFilter]
     search_fields = ["creator__first_name", "creator__last_name", "creator__email"]
     
@@ -401,6 +405,7 @@ class DonationSearchByCause(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicDonationSerializer
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["cause__title", "cause__description"]
 
@@ -408,6 +413,7 @@ class DonationSearchByCauseID(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicDonationSerializer
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["=cause__id"]
 
@@ -415,12 +421,14 @@ class DonationSearchByDonor(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicDonationSerializer
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["donor__email", "donor__first_name", "donor__last_name"]
 class DonationSearchByDonorID(generics.ListAPIView):
     queryset = Donation.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicDonationSerializer
+    pagination_class=None
     filter_backends = [filters.SearchFilter]
     search_fields = ["=donor__id"]
 
